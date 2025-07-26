@@ -1,0 +1,41 @@
+{
+	"schemaVersion": 1,
+	"id": "vrpg-spell-book",
+	"version": "${version}",
+	"name": "VRPG Spell Book",
+	"description": "This is an example description! Tell everyone what your mod is about!",
+	"authors": [
+		"Me!"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/vrpg-spell-book/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"vrpg.spellbook.VRPGSpellBook"
+		],
+		"client": [
+			"vrpg.spellbook.VRPGSpellBookClient"
+		]
+	},
+	"mixins": [
+		"vrpg-spell-book.mixins.json",
+		{
+			"config": "vrpg-spell-book.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.14",
+		"minecraft": "~1.21.4",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
