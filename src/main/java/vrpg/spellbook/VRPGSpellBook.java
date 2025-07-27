@@ -18,7 +18,8 @@ public class VRPGSpellBook implements ModInitializer {
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
 			if (content.startsWith(CONFIG.spellPrefix)) {
-				LOGGER.info(content);
+				var spell = content.replace(CONFIG.spellPrefix, "").trim().toLowerCase();
+				LOGGER.info(spell);
 				return false;
 			}
 			return true;
