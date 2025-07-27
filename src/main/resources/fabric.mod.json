@@ -19,7 +19,7 @@
 			"vrpg.spellbook.VRPGSpellBook"
 		],
 		"client": [
-			"vrpg.spellbook.VRPGSpellBookClient"
+			"vrpg.spellbook.client.VRPGSpellBookClient"
 		]
 	},
 	"mixins": [

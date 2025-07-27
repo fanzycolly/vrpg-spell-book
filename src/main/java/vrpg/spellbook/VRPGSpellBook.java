@@ -17,7 +17,7 @@ import java.util.Objects;
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	public static final Config CONFIG = Config.load();
+	static final Config CONFIG = Config.load();
 
 	@Override
 	public void onInitialize() {
