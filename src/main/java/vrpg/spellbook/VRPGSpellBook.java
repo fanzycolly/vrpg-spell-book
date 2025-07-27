@@ -8,6 +8,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
+import net.sourceforge.pinyin4j.PinyinHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,10 @@ public class VRPGSpellBook implements ModInitializer {
 				return true;
 			}
 			var spell = formatSpell(content);
+			if (spell == null) {
+				LOGGER.warn("Failed to get formatted spell: {}", content);
+				return false;
+			}
 			LOGGER.info(spell);
 			if (!CONFIG.spellInfoMap.containsKey(spell)) {
 				LOGGER.info("Failed to recognize spell: {}", spell);
@@ -40,12 +45,36 @@ public class VRPGSpellBook implements ModInitializer {
 	}
 
 	private String formatSpell(String input) {
-		return  input
-				.replace(CONFIG.prefix, "")
-				.toLowerCase()
-				.replaceAll("\\p{Punct}", " ")
-				.replaceAll("\\s+", " ")
-				.trim();
+		var language = "zh";
+		if (language.equals("zh")) {
+			return toPinYin(input.replace(CONFIG.prefix, ""))
+					.replaceAll("\\s+", " ")
+					.trim();
+		} else if (language.equals("en")) {
+			return input
+					.replace(CONFIG.prefix, "")
+					.toLowerCase()
+					.replaceAll("\\p{Punct}", "")
+					.replaceAll("\\s+", " ")
+					.trim();
+		} else {
+			LOGGER.warn("Language not supported: {}", language);
+			return null;
+		}
+	}
+
+	private String toPinYin(String chineseInput) {
+		StringBuilder pinyinBuilder = new StringBuilder();
+		for (int i = 0; i < chineseInput.length(); i++) {
+			char ch = chineseInput.charAt(i);
+			String[] pinyins = PinyinHelper.toHanyuPinyinStringArray(ch);
+			if (pinyins == null || pinyins.length == 0 || pinyins[0].equals("none0")) {
+				continue;
+			}
+			String pinyin = pinyins[0].replaceAll("\\d", "");
+			pinyinBuilder.append(pinyin).append(" ");
+		}
+		return pinyinBuilder.toString().trim();
 	}
 
 	private void castSpell(PlayerEntity player, SpellInfo spell) {
