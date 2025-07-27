@@ -18,12 +18,23 @@ public class VRPGSpellBook implements ModInitializer {
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
 			if (content.startsWith(CONFIG.spellPrefix)) {
-				var spell = content.replace(CONFIG.spellPrefix, "").trim().toLowerCase();
+				var spell = formatSpell(content);
 				LOGGER.info(spell);
+				if (spell.contains("god grant me strength")) {
+					LOGGER.info("god heard");
+				}
 				return false;
 			}
 			return true;
 		});
 	}
 
+	private String formatSpell(String input) {
+		return  input
+				.replace(CONFIG.spellPrefix, "")
+				.toLowerCase()
+				.replaceAll("\\p{Punct}", " ")
+				.replaceAll("\\s+", " ")
+				.trim();
+	}
 }
