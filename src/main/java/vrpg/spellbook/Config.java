@@ -7,7 +7,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Config {
+class Config {
     public String prefix = "vrpg_spell";
     private SpellInfo[] spells = new SpellInfo[0];
     public transient Map<String, SpellInfo> spellInfoMap = null;
@@ -53,7 +53,7 @@ public class Config {
         }
     }
 
-    public static void save(Config config) {
+    private static void save(Config config) {
         try (Writer writer = new FileWriter(CONFIG_FILE)) {
             GSON.toJson(config, writer);
         } catch (IOException e) {
