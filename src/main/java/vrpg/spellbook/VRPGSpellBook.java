@@ -2,10 +2,16 @@ package vrpg.spellbook;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
 
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
@@ -20,19 +26,15 @@ public class VRPGSpellBook implements ModInitializer {
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
 			if (content.startsWith(CONFIG.prefix)) {
-				var spell = formatSpell(content);
-				LOGGER.info(spell);
-				if (spell.contains("god grant me strength")) {
-					LOGGER.info("god heard");
-					player.addStatusEffect(new StatusEffectInstance(
-							StatusEffects.STRENGTH,
-							10 * 20,
-							0
-					));
-				}
+				return true;
+			}
+			var spell = formatSpell(content);
+			LOGGER.info(spell);
+			if (!CONFIG.spellInfoMap.containsKey(spell)) {
 				return false;
 			}
-			return true;
+			castSpell(player,CONFIG.spellInfoMap.get(spell));
+			return false;
 		});
 	}
 
@@ -43,5 +45,36 @@ public class VRPGSpellBook implements ModInitializer {
 				.replaceAll("\\p{Punct}", " ")
 				.replaceAll("\\s+", " ")
 				.trim();
+	}
+
+	private void castSpell(PlayerEntity player, SpellInfo spell) {
+		if (Objects.equals(spell.action, "addStatusEffect")) {
+			var effect = getStatusEffect(spell.statusEffectType);
+			if (effect == null) {
+				LOGGER.warn("Failed to get status effect {}", spell.statusEffectType);
+				return;
+			}
+			player.addStatusEffect(new StatusEffectInstance(
+					effect,
+					spell.duration * 20,
+					spell.statusEffectLevel - 1
+			));
+		} else {
+			LOGGER.warn("Spell action not found {}", spell.action);
+		}
+	}
+
+	private RegistryEntry<StatusEffect> getStatusEffect(String type) {
+		var id = Identifier.tryParse(type);
+		if (id == null) {
+			LOGGER.warn("Failed to parse identifier: {}", type);
+			return  null;
+		}
+		var entry = Registries.STATUS_EFFECT.getEntry(id);
+		if (entry.isEmpty()) {
+			LOGGER.warn("No such status effect: {}", type);
+			return null;
+		}
+		return entry.get();
 	}
 }

@@ -4,14 +4,18 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Config {
     public String prefix = "vrpg_spell";
-    public Spell[] spells = new Spell[0];
-    //todo add map to accelerate finding
+    private SpellInfo[] spellInfos = new SpellInfo[0];
+    public transient Map<String, SpellInfo> spellInfoMap = null;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
     //todo: add spell-book.schema.json
+
     public static Config load() {
         File configDir = CONFIG_FILE.getParentFile();
         File vrpgDir = configDir.getParentFile();
@@ -34,6 +38,14 @@ public class Config {
 
         try (Reader reader = new FileReader(CONFIG_FILE)) {
             var config = GSON.fromJson(reader, Config.class);
+            var map = new HashMap<String, SpellInfo>();
+            for (var spell : config.spellInfos) {
+                for (var entry : spell.localized.entrySet()) {
+                    var spellText = entry.getValue();
+                    map.put(spellText, spell);
+                }
+            }
+            config.spellInfoMap = map;
             return config;
         } catch (IOException e) {
             VRPGSpellBook.LOGGER.error("Failed to read config: {}", CONFIG_FILE.getPath(), e);

@@ -2,7 +2,7 @@ package vrpg.spellbook;
 
 import java.util.Map;
 
-public class Spell {
+public class SpellInfo {
     public Map<String, String> localized;
     //todo support chinese
     //todo check mc's language code, use the same one
