@@ -6,11 +6,12 @@ import com.google.gson.GsonBuilder;
 import java.io.*;
 
 public class Config {
-    public final String prefix = "vrpg_spell";
-    public final Spell[] spells = new Spell[0];
+    public String prefix = "vrpg_spell";
+    public Spell[] spells = new Spell[0];
+    //todo add map to accelerate finding
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
-
+    //todo: add spell-book.schema.json
     public static Config load() {
         File configDir = CONFIG_FILE.getParentFile();
         File vrpgDir = configDir.getParentFile();
