@@ -6,8 +6,8 @@ import com.google.gson.GsonBuilder;
 import java.io.*;
 
 public class Config {
-    public String spellPrefix = "vrpg_spell";
-
+    public final String prefix = "vrpg_spell";
+    public final Spell[] spells = new Spell[0];
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
 
@@ -32,7 +32,8 @@ public class Config {
         }
 
         try (Reader reader = new FileReader(CONFIG_FILE)) {
-            return GSON.fromJson(reader, Config.class);
+            var config = GSON.fromJson(reader, Config.class);
+            return config;
         } catch (IOException e) {
             VRPGSpellBook.LOGGER.error("Failed to read config: {}", CONFIG_FILE.getPath(), e);
             throw new RuntimeException(e);
