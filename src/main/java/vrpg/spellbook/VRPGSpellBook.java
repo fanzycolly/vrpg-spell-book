@@ -25,12 +25,13 @@ public class VRPGSpellBook implements ModInitializer {
 		// Proceed with mild caution.
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
-			if (content.startsWith(CONFIG.prefix)) {
+			if (!content.startsWith(CONFIG.prefix)) {
 				return true;
 			}
 			var spell = formatSpell(content);
 			LOGGER.info(spell);
 			if (!CONFIG.spellInfoMap.containsKey(spell)) {
+				LOGGER.info("Failed to recognize spell: {}", spell);
 				return false;
 			}
 			castSpell(player,CONFIG.spellInfoMap.get(spell));
@@ -51,7 +52,7 @@ public class VRPGSpellBook implements ModInitializer {
 		if (Objects.equals(spell.action, "addStatusEffect")) {
 			var effect = getStatusEffect(spell.statusEffectType);
 			if (effect == null) {
-				LOGGER.warn("Failed to get status effect {}", spell.statusEffectType);
+				LOGGER.warn("Failed to get status effect: {}", spell.statusEffectType);
 				return;
 			}
 			player.addStatusEffect(new StatusEffectInstance(
@@ -60,7 +61,7 @@ public class VRPGSpellBook implements ModInitializer {
 					spell.statusEffectLevel - 1
 			));
 		} else {
-			LOGGER.warn("Spell action not found {}", spell.action);
+			LOGGER.warn("Spell action not found: {}", spell.action);
 		}
 	}
 

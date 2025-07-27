@@ -9,7 +9,7 @@ import java.util.Map;
 
 public class Config {
     public String prefix = "vrpg_spell";
-    private SpellInfo[] spellInfos = new SpellInfo[0];
+    private SpellInfo[] spells = new SpellInfo[0];
     public transient Map<String, SpellInfo> spellInfoMap = null;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -39,7 +39,7 @@ public class Config {
         try (Reader reader = new FileReader(CONFIG_FILE)) {
             var config = GSON.fromJson(reader, Config.class);
             var map = new HashMap<String, SpellInfo>();
-            for (var spell : config.spellInfos) {
+            for (var spell : config.spells) {
                 for (var entry : spell.localized.entrySet()) {
                     var spellText = entry.getValue();
                     map.put(spellText, spell);
