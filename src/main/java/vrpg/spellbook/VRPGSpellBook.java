@@ -67,6 +67,7 @@ public class VRPGSpellBook implements ModInitializer {
 				return;
 			}
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
+			//todo add enchantment only for a specific duration
 		} else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
 		}
