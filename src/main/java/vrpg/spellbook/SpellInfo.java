@@ -8,4 +8,6 @@ class SpellInfo {
     public int duration;
     public int statusEffectLevel;
     public String statusEffectType;
+    public String enchantmentType;
+    public int enchantmentLevel;
 }

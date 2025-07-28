@@ -6,6 +6,8 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -29,6 +31,7 @@ public class VRPGSpellBook implements ModInitializer {
 				return true;
 			}
 			var spell = content.replace(CONFIG.prefix + " ", "");
+			LOGGER.info(spell);
 			//todo Levenshtein distance, allow some wrong character in result
 			if (!CONFIG.spellInfoMap.containsKey(spell)) {
 				LOGGER.info("Failed to recognize spell: {}", spell);
@@ -41,7 +44,7 @@ public class VRPGSpellBook implements ModInitializer {
 	}
 
 	private void castSpell(PlayerEntity player, SpellInfo spell) {
-		if (Objects.equals(spell.action, "addStatusEffect")) {
+		if (spell.action.equals("addStatusEffect")) {
 			var effect = getStatusEffect(spell.statusEffectType);
 			if (effect == null) {
 				LOGGER.warn("Failed to get status effect: {}", spell.statusEffectType);
@@ -52,6 +55,12 @@ public class VRPGSpellBook implements ModInitializer {
 					spell.duration * 20,
 					spell.statusEffectLevel - 1
 			));
+		} else if (spell.action.equals("addEnchantment")) {
+			var mainHand = player.getMainHandStack();
+			var id = Identifier.tryParse(spell.enchantmentType);
+			var key = RegistryKey.of(RegistryKeys.ENCHANTMENT, id);
+			var enchantment = player.getServer().getRegistryManager().getOptionalEntry(key).get();
+			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 		} else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
 		}
