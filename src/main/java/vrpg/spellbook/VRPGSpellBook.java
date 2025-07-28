@@ -2,6 +2,7 @@ package vrpg.spellbook;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
+import net.fabricmc.fabric.api.item.v1.EnchantingContext;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
@@ -51,7 +52,20 @@ public class VRPGSpellBook implements ModInitializer {
 			));
 		} else if (spell.action.equals("addEnchantment")) {
 			var mainHand = player.getMainHandStack();
+			if (mainHand.isEmpty()) {
+				LOGGER.info("Player's main hand is empty");
+				return;
+			}
 			var enchantment = getRegistryEntry(player, RegistryKeys.ENCHANTMENT, spell.enchantmentName);
+			if (enchantment == null) {
+				LOGGER.warn("Failed to get enchantment: {}", spell.enchantmentName);
+				return;
+			}
+			var acceptable = mainHand.canBeEnchantedWith(enchantment, EnchantingContext.ACCEPTABLE);
+			if (!acceptable) {
+				LOGGER.warn("Main hand item is not acceptable for this enchantment: {} {}", mainHand, enchantment);
+				return;
+			}
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 		} else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
