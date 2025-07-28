@@ -41,7 +41,7 @@ class Config {
             var config = GSON.fromJson(reader, Config.class);
             var map = new HashMap<String, SpellInfo>();
             for (var spell : config.spells) {
-                for (var entry : spell.localized.entrySet()) {
+                for (var entry : spell.localizedSpell.entrySet()) {
                     var spellText = entry.getValue();
                     map.put(spellText, spell);
                 }

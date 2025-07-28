@@ -2,18 +2,15 @@ package vrpg.spellbook;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
-import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Objects;
 
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
@@ -22,9 +19,6 @@ public class VRPGSpellBook implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// This code runs as soon as Minecraft is in a mod-load-ready state.
-		// However, some things (like resources) may still be uninitialized.
-		// Proceed with mild caution.
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
 			if (!content.startsWith(CONFIG.prefix)) {
@@ -38,16 +32,16 @@ public class VRPGSpellBook implements ModInitializer {
 				return false;
 			}
 			castSpell(player,CONFIG.spellInfoMap.get(spell));
-			//todo add some sounds when casted the spell
+			//todo add some sounds when casting the spell
 			return false;
 		});
 	}
 
-	private void castSpell(PlayerEntity player, SpellInfo spell) {
+	private void castSpell(ServerPlayerEntity player, SpellInfo spell) {
 		if (spell.action.equals("addStatusEffect")) {
-			var effect = getStatusEffect(spell.statusEffectType);
+			var effect = getRegistryEntry(player, RegistryKeys.STATUS_EFFECT, spell.statusEffectName);
 			if (effect == null) {
-				LOGGER.warn("Failed to get status effect: {}", spell.statusEffectType);
+				LOGGER.warn("Failed to get status effect: {}", spell.statusEffectName);
 				return;
 			}
 			player.addStatusEffect(new StatusEffectInstance(
@@ -57,26 +51,25 @@ public class VRPGSpellBook implements ModInitializer {
 			));
 		} else if (spell.action.equals("addEnchantment")) {
 			var mainHand = player.getMainHandStack();
-			var id = Identifier.tryParse(spell.enchantmentType);
-			var key = RegistryKey.of(RegistryKeys.ENCHANTMENT, id);
-			var enchantment = player.getServer().getRegistryManager().getOptionalEntry(key).get();
+			var enchantment = getRegistryEntry(player, RegistryKeys.ENCHANTMENT, spell.enchantmentName);
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 		} else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
 		}
 	}
 
-	private RegistryEntry<StatusEffect> getStatusEffect(String type) {
-		var id = Identifier.tryParse(type);
+	private <T> RegistryEntry<T> getRegistryEntry(ServerPlayerEntity player, RegistryKey<Registry<T>> keyType, String name) {
+		Identifier id = Identifier.tryParse(name);
 		if (id == null) {
-			LOGGER.warn("Failed to parse identifier: {}", type);
-			return  null;
-		}
-		var entry = Registries.STATUS_EFFECT.getEntry(id);
-		if (entry.isEmpty()) {
-			LOGGER.warn("No such status effect: {}", type);
+			LOGGER.warn("Failed to parse identifier: {}", name);
 			return null;
 		}
-		return entry.get();
+		var key = RegistryKey.of(keyType, id);
+		var result = player.getRegistryManager().getOptionalEntry(key);
+		if (result.isEmpty()){
+			LOGGER.warn("Failed to get registry entry: {}", key);
+			return null;
+		}
+		return result.get();
 	}
 }
