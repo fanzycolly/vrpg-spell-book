@@ -15,6 +15,7 @@ class Config {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
     //todo: add spell-book.schema.json
+    //todo: perform multiple action at once
 
     public static Config load() {
         File configDir = CONFIG_FILE.getParentFile();

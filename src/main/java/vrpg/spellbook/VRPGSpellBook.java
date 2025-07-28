@@ -29,11 +29,13 @@ public class VRPGSpellBook implements ModInitializer {
 				return true;
 			}
 			var spell = content.replace(CONFIG.prefix + " ", "");
+			//todo Levenshtein distance, allow some wrong character in result
 			if (!CONFIG.spellInfoMap.containsKey(spell)) {
 				LOGGER.info("Failed to recognize spell: {}", spell);
 				return false;
 			}
 			castSpell(player,CONFIG.spellInfoMap.get(spell));
+			//todo add some sounds when casted the spell
 			return false;
 		});
 	}
