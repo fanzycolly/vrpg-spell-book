@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
 import net.minecraft.entity.*;
 import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -74,19 +75,23 @@ public class VRPGSpellBook implements ModInitializer {
 			//todo add enchantment only for a specific duration
 		} else if (spell.action.equals("summonLightning")) {
 			ServerWorld world = player.getServerWorld();
-			var range = 10;
+			var range = spell.maxDistance;
 			var center = player.getPos();
 			Box box = new Box(
 					center.x - range, center.y - range, center.z - range,
 					center.x + range, center.y + range, center.z + range
 			);
-			var entities = world.getEntitiesByType((TypeFilter.instanceOf(LivingEntity.class)), box, LivingEntity::isAlive);
-			for (var e : entities) {
+			var entities = world.getEntitiesByType((
+					TypeFilter.instanceOf(LivingEntity.class)),
+					box,
+					entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
+			var limited = entities.subList(0, Math.min(spell.maxTargets, entities.size()));
+			for (var e : limited) {
 				var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
 				lightning.refreshPositionAfterTeleport(e.getPos());
 				world.spawnEntity(lightning);
 			}
-			//todo how many times ,how much entity ,no player,
+			//todo repeat count
 		}
 		else {
 			LOGGER.warn("Spell action not found: {}", spell.action);

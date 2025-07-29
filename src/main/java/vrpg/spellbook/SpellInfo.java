@@ -10,4 +10,7 @@ class SpellInfo {
     public int statusEffectLevel;
     public String enchantmentName;
     public int enchantmentLevel;
+    public int maxDistance;
+    public int maxTargets;
+    public int repeatCount;
 }
