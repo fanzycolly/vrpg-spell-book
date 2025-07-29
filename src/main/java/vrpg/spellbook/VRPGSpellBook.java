@@ -18,6 +18,8 @@ import net.minecraft.util.math.Box;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Comparator;
+
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
@@ -85,6 +87,7 @@ public class VRPGSpellBook implements ModInitializer {
 					TypeFilter.instanceOf(LivingEntity.class)),
 					box,
 					entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
+			entities.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(center)));
 			var limited = entities.subList(0, Math.min(spell.maxTargets, entities.size()));
 			for (var e : limited) {
 				var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
