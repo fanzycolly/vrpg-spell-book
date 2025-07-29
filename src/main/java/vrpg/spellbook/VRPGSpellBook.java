@@ -68,7 +68,23 @@ public class VRPGSpellBook implements ModInitializer {
 			}
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 			//todo add enchantment only for a specific duration
-		} else {
+		} else if (spell.action.equals("summonLightning")) {
+			ServerWorld world = player.getServerWorld();
+			var range = 10;
+			var center = player.getPos();
+			Box box = new Box(
+					center.x - range, center.y - range, center.z - range,
+					center.x + range, center.y + range, center.z + range
+			);
+			var entities = world.getEntitiesByType((TypeFilter.instanceOf(LivingEntity.class)), box, LivingEntity::isAlive);
+			for (var e : entities) {
+				var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
+				lightning.refreshPositionAfterTeleport(e.getPos());
+				world.spawnEntity(lightning);
+			}
+			//todo how many times ,how much entity ,no player,
+		}
+		else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
 		}
 	}
