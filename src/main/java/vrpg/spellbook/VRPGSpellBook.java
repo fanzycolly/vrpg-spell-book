@@ -1,6 +1,7 @@
 package vrpg.spellbook;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
 import net.minecraft.entity.*;
@@ -43,6 +44,9 @@ public class VRPGSpellBook implements ModInitializer {
 			//todo add some sounds when casting the spell
 			return false;
 		});
+		ServerTickEvents.END_SERVER_TICK.register(server -> {
+			DelayTask.tick();
+		});
 	}
 
 	private void castSpell(ServerPlayerEntity player, SpellInfo spell) {
@@ -76,25 +80,28 @@ public class VRPGSpellBook implements ModInitializer {
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 			//todo add enchantment only for a specific duration
 		} else if (spell.action.equals("summonLightning")) {
-			ServerWorld world = player.getServerWorld();
-			var range = spell.maxDistance;
-			var center = player.getPos();
-			Box box = new Box(
-					center.x - range, center.y - range, center.z - range,
-					center.x + range, center.y + range, center.z + range
-			);
-			var entities = world.getEntitiesByType((
-					TypeFilter.instanceOf(LivingEntity.class)),
-					box,
-					entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
-			entities.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(center)));
-			var limited = entities.subList(0, Math.min(spell.maxTargets, entities.size()));
-			for (var e : limited) {
-				var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
-				lightning.refreshPositionAfterTeleport(e.getPos());
-				world.spawnEntity(lightning);
+			for (int i = 0; i < spell.repeatCount; i++) {
+				DelayTask.add(() -> {
+					ServerWorld world = player.getServerWorld();
+					var range = spell.maxDistance;
+					var center = player.getPos();
+					Box box = new Box(
+							center.x - range, center.y - range, center.z - range,
+							center.x + range, center.y + range, center.z + range
+					);
+					var entities = world.getEntitiesByType((
+									TypeFilter.instanceOf(LivingEntity.class)),
+							box,
+							entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
+					entities.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(center)));
+					var limited = entities.subList(0, Math.min(spell.maxTarget, entities.size()));
+					for (var e : limited) {
+						var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
+						lightning.refreshPositionAfterTeleport(e.getPos());
+						world.spawnEntity(lightning);
+					}
+				}, i * spell.repeatDelay);
 			}
-			//todo repeat count
 		}
 		else {
 			LOGGER.warn("Spell action not found: {}", spell.action);
