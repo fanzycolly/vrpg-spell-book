@@ -82,7 +82,6 @@ public class VRPGSpellBook implements ModInitializer {
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
 			DelayTask.add(() -> {
 				EnchantmentHelper.apply(mainHand, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
-				player.currentScreenHandler.sendContentUpdates();
 				//todo bug inventory
 			}, spell.duration);
 		} else if (spell.action.equals("summonLightning")) {
