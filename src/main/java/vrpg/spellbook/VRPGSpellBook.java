@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
@@ -77,8 +78,13 @@ public class VRPGSpellBook implements ModInitializer {
 				LOGGER.warn("Main hand item is not acceptable for this enchantment: {} {}", mainHand, enchantment);
 				return;
 			}
+
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
-			//todo add enchantment only for a specific duration
+			DelayTask.add(() -> {
+				EnchantmentHelper.apply(mainHand, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
+				player.currentScreenHandler.sendContentUpdates();
+				//todo bug inventory
+			}, spell.duration);
 		} else if (spell.action.equals("summonLightning")) {
 			for (int i = 0; i < spell.repeatCount; i++) {
 				DelayTask.add(() -> {

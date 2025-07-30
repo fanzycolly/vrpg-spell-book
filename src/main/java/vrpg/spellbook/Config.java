@@ -16,6 +16,7 @@ class Config {
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
     //todo: add spell-book.schema.json
     //todo: perform multiple action at once
+    //todo: dynamic read config file, no need to restart the game
 
     public static Config load() {
         File configDir = CONFIG_FILE.getParentFile();
