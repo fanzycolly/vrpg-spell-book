@@ -163,6 +163,7 @@ public class VRPGSpellBook implements ModInitializer {
 		var uuid = UUID.randomUUID().toString();
 		nbt.putString(uuid, "");
 		item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+		//todo bug Idempotency
 		return uuid;
 	}
 
