@@ -24,32 +24,26 @@ import net.minecraft.util.math.Box;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.BiConsumer;
 
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	static final Config CONFIG = Config.load();
 
+	private final Map<String, BiConsumer<ServerPlayerEntity, SpellInfo>> spellActions = new HashMap<>();
+
 	@Override
 	public void onInitialize() {
+		initSpellActions();
 		ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, param) -> {
 			var content = message.getContent().getString();
 			if (!content.startsWith(CONFIG.prefix)) {
 				return true;
 			}
 			var spell = content.replace(CONFIG.prefix + " ", "");
-			LOGGER.info(spell);
-			//todo Levenshtein distance, allow some wrong character in result
-			if (!CONFIG.spellInfoMap.containsKey(spell)) {
-				LOGGER.info("Failed to recognize spell: {}", spell);
-				return false;
-			}
-			castSpell(player,CONFIG.spellInfoMap.get(spell));
-			//todo add some sounds when casting the spell
+			castSpell(player, spell);
 			return false;
 		});
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
@@ -57,87 +51,95 @@ public class VRPGSpellBook implements ModInitializer {
 		});
 	}
 
-	private void castSpell(ServerPlayerEntity player, SpellInfo spell) {
-		if (spell.action.equals("addStatusEffect")) {
-			var effect = getRegistryEntry(player, RegistryKeys.STATUS_EFFECT, spell.statusEffectName);
-			if (effect == null) {
-				LOGGER.warn("Failed to get status effect: {}", spell.statusEffectName);
-				return;
-			}
-			player.addStatusEffect(new StatusEffectInstance(
-					effect,
-					spell.duration * 20,
-					spell.statusEffectLevel - 1
-			));
-		} else if (spell.action.equals("addEnchantment")) {
-			var mainHand = player.getMainHandStack();
-			if (mainHand.isEmpty()) {
-				LOGGER.info("Player's main hand is empty");
-				return;
-			}
-			var enchantment = getRegistryEntry(player, RegistryKeys.ENCHANTMENT, spell.enchantmentName);
-			if (enchantment == null) {
-				LOGGER.warn("Failed to get enchantment: {}", spell.enchantmentName);
-				return;
-			}
-			var acceptable = mainHand.canBeEnchantedWith(enchantment, EnchantingContext.ACCEPTABLE);
-			if (!acceptable) {
-				LOGGER.warn("Main hand item is not acceptable for this enchantment: {} {}", mainHand, enchantment);
-				return;
-			}
-			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
-			var nbt = new NbtCompound();
-			var uuid = UUID.randomUUID().toString();
-			nbt.putString(uuid, spell.enchantmentName);
-			mainHand.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
-			DelayTask.add(() -> {
-				var inventory = player.getInventory();
-				List<ItemStack> allItems = new ArrayList<>();
-				allItems.addAll(inventory.main);
-				allItems.addAll(inventory.armor);
-				allItems.addAll(inventory.offHand);
-				for (ItemStack item : allItems) {
-					if (item.isEmpty()) {
-						continue;
-					}
-					var customData = item.get(DataComponentTypes.CUSTOM_DATA);
-					if (customData == null) {
-						continue;
-					}
-					if (!customData.copyNbt().contains(uuid)) {
-						continue;
-					}
-					EnchantmentHelper.apply(item, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
-					break;
-				}
-				//todo if it's not in player's inventory now
-			}, spell.duration);
-		} else if (spell.action.equals("summonLightning")) {
-			for (int i = 0; i < spell.repeatCount; i++) {
-				DelayTask.add(() -> {
-					ServerWorld world = player.getServerWorld();
-					var range = spell.maxDistance;
-					var center = player.getPos();
-					Box box = new Box(
-							center.x - range, center.y - range, center.z - range,
-							center.x + range, center.y + range, center.z + range
-					);
-					var entities = world.getEntitiesByType((
-									TypeFilter.instanceOf(LivingEntity.class)),
-							box,
-							entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
-					entities.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(center)));
-					var limited = entities.subList(0, Math.min(spell.maxTarget, entities.size()));
-					for (var e : limited) {
-						var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
-						lightning.refreshPositionAfterTeleport(e.getPos());
-						world.spawnEntity(lightning);
-					}
-				}, i * spell.repeatDelay);
-			}
+	private void initSpellActions() {
+		spellActions.put("addStatusEffect", this::addStatusEffect);
+		spellActions.put("addEnchantment", this::addEnchantment);
+		spellActions.put("summonLightning", this::summonLightning);
+	}
+
+	private void castSpell(ServerPlayerEntity player, String spell) {
+		LOGGER.info(spell);
+		//todo Levenshtein distance, allow some wrong character in result
+		if (!CONFIG.spellMap.containsKey(spell)) {
+			LOGGER.info("Failed to recognize spell: {}", spell);
+			return;
 		}
-		else {
-			LOGGER.warn("Spell action not found: {}", spell.action);
+		var spellInfo = CONFIG.spellMap.get(spell);
+		var actionKey = spellInfo.action;
+		if (!spellActions.containsKey(actionKey)) {
+			LOGGER.warn("Spell action not found: {}", actionKey);
+			return;
+		}
+		var action = spellActions.get(actionKey);
+		action.accept(player, spellInfo);
+		//todo add some sounds when casting the spell
+	}
+
+	private void addStatusEffect(ServerPlayerEntity player, SpellInfo spell) {
+		var effect = getRegistryEntry(player, RegistryKeys.STATUS_EFFECT, spell.statusEffectName);
+		if (effect == null) {
+			LOGGER.warn("Failed to get status effect: {}", spell.statusEffectName);
+			return;
+		}
+		player.addStatusEffect(new StatusEffectInstance(
+				effect,
+				spell.duration * 20,
+				spell.statusEffectLevel - 1
+		));
+	}
+
+	private void addEnchantment(ServerPlayerEntity player, SpellInfo spell) {
+		var mainHand = player.getMainHandStack();
+		if (mainHand.isEmpty()) {
+			LOGGER.info("Player's main hand is empty");
+			return;
+		}
+		var enchantment = getRegistryEntry(player, RegistryKeys.ENCHANTMENT, spell.enchantmentName);
+		if (enchantment == null) {
+			LOGGER.warn("Failed to get enchantment: {}", spell.enchantmentName);
+			return;
+		}
+		var acceptable = mainHand.canBeEnchantedWith(enchantment, EnchantingContext.ACCEPTABLE);
+		if (!acceptable) {
+			LOGGER.info("Main hand item is not acceptable for this enchantment: {} {}", mainHand, enchantment);
+			return;
+		}
+		mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
+		var uuid = addUUID(mainHand);
+		DelayTask.add(() -> {
+			var item = findPlayersItemWithUUID(player, uuid);
+			if (item.isEmpty()) {
+				//todo if it's not in player's inventory now
+				LOGGER.warn("Enchantment item lost");
+				return;
+			}
+			removeUUID(item, uuid);
+			EnchantmentHelper.apply(item, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
+		}, spell.duration);
+	}
+
+	private void summonLightning(ServerPlayerEntity player, SpellInfo spell) {
+		for (int i = 0; i < spell.repeatCount; i++) {
+			DelayTask.add(() -> {
+				ServerWorld world = player.getServerWorld();
+				var range = spell.maxDistance;
+				var center = player.getPos();
+				Box box = new Box(
+						center.x - range, center.y - range, center.z - range,
+						center.x + range, center.y + range, center.z + range
+				);
+				var entities = world.getEntitiesByType((
+								TypeFilter.instanceOf(LivingEntity.class)),
+						box,
+						entity -> entity.isAlive() && !(entity instanceof PlayerEntity));
+				entities.sort(Comparator.comparingDouble(e -> e.squaredDistanceTo(center)));
+				var limited = entities.subList(0, Math.min(spell.maxTarget, entities.size()));
+				for (var e : limited) {
+					var lightning = EntityType.LIGHTNING_BOLT.create(world, SpawnReason.TRIGGERED);
+					lightning.refreshPositionAfterTeleport(e.getPos());
+					world.spawnEntity(lightning);
+				}
+			}, i * spell.repeatDelay);
 		}
 	}
 
@@ -155,4 +157,53 @@ public class VRPGSpellBook implements ModInitializer {
 		}
 		return result.get();
 	}
+
+	private String addUUID(ItemStack item) {
+		var nbt = new NbtCompound();
+		var uuid = UUID.randomUUID().toString();
+		nbt.putString(uuid, "");
+		item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+		return uuid;
+	}
+
+	private ItemStack findPlayersItemWithUUID(ServerPlayerEntity player, String uuid) {
+		var inventory = player.getInventory();
+		List<ItemStack> allItems = new ArrayList<>();
+		allItems.addAll(inventory.main);
+		allItems.addAll(inventory.armor);
+		allItems.addAll(inventory.offHand);
+		for (ItemStack item : allItems) {
+			if (item.isEmpty()) {
+				continue;
+			}
+			var customData = item.get(DataComponentTypes.CUSTOM_DATA);
+			if (customData == null) {
+				continue;
+			}
+			if (!customData.copyNbt().contains(uuid)) {
+				continue;
+			}
+			return item;
+		}
+		return ItemStack.EMPTY;
+	}
+
+	private void removeUUID(ItemStack item, String uuid) {
+		if (item.isEmpty()) return;
+
+		var customData = item.get(DataComponentTypes.CUSTOM_DATA);
+		if (customData == null) return;
+
+		NbtCompound nbt = customData.copyNbt();
+
+		if (nbt.contains(uuid)) {
+			nbt.remove(uuid);
+			if (nbt.isEmpty()) {
+				item.remove(DataComponentTypes.CUSTOM_DATA);
+			} else {
+				item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
+			}
+		}
+	}
+
 }

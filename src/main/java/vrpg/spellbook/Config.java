@@ -10,7 +10,7 @@ import java.util.Map;
 class Config {
     public String prefix = "vrpg_spell";
     private SpellInfo[] spells = new SpellInfo[0];
-    public transient Map<String, SpellInfo> spellInfoMap = null;
+    public transient Map<String, SpellInfo> spellMap = null;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final File CONFIG_FILE = new File("vrpg/config/spell-book.json");
@@ -47,7 +47,7 @@ class Config {
                     map.put(spellText, spell);
                 }
             }
-            config.spellInfoMap = map;
+            config.spellMap = map;
             return config;
         } catch (IOException e) {
             VRPGSpellBook.LOGGER.error("Failed to read config: {}", CONFIG_FILE.getPath(), e);
