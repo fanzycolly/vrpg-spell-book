@@ -4,10 +4,14 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
@@ -20,7 +24,10 @@ import net.minecraft.util.math.Box;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
@@ -78,11 +85,32 @@ public class VRPGSpellBook implements ModInitializer {
 				LOGGER.warn("Main hand item is not acceptable for this enchantment: {} {}", mainHand, enchantment);
 				return;
 			}
-
 			mainHand.addEnchantment(enchantment, spell.enchantmentLevel);
+			var nbt = new NbtCompound();
+			var uuid = UUID.randomUUID().toString();
+			nbt.putString(uuid, spell.enchantmentName);
+			mainHand.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
 			DelayTask.add(() -> {
-				EnchantmentHelper.apply(mainHand, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
-				//todo bug inventory
+				var inventory = player.getInventory();
+				List<ItemStack> allItems = new ArrayList<>();
+				allItems.addAll(inventory.main);
+				allItems.addAll(inventory.armor);
+				allItems.addAll(inventory.offHand);
+				for (ItemStack item : allItems) {
+					if (item.isEmpty()) {
+						continue;
+					}
+					var customData = item.get(DataComponentTypes.CUSTOM_DATA);
+					if (customData == null) {
+						continue;
+					}
+					if (!customData.copyNbt().contains(uuid)) {
+						continue;
+					}
+					EnchantmentHelper.apply(item, builder -> builder.remove(entry -> entry.matchesKey(enchantment.getKey().get())));
+					break;
+				}
+				//todo if it's not in player's inventory now
 			}, spell.duration);
 		} else if (spell.action.equals("summonLightning")) {
 			for (int i = 0; i < spell.repeatCount; i++) {
