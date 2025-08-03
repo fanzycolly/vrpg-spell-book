@@ -10,6 +10,8 @@ import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.*;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.projectile.FireballEntity;
+import net.minecraft.entity.projectile.SmallFireballEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registry;
@@ -21,6 +23,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.TypeFilter;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.Vec3d;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +58,7 @@ public class VRPGSpellBook implements ModInitializer {
 		spellActions.put("addStatusEffect", this::addStatusEffect);
 		spellActions.put("addEnchantment", this::addEnchantment);
 		spellActions.put("summonLightning", this::summonLightning);
+		spellActions.put("shootFireball", this::shootFireball);
 	}
 
 	private void castSpell(ServerPlayerEntity player, String spell) {
@@ -139,6 +143,21 @@ public class VRPGSpellBook implements ModInitializer {
 					lightning.refreshPositionAfterTeleport(e.getPos());
 					world.spawnEntity(lightning);
 				}
+			}, i * spell.repeatDelay);
+		}
+	}
+
+	private void shootFireball(ServerPlayerEntity player, SpellInfo spell) {
+		for (int i = 0; i < spell.repeatCount; i++) {
+			DelayTask.add(() -> {
+				ServerWorld world = player.getServerWorld();
+				Vec3d direction = player.getRotationVec(1.0F).normalize();
+				Vec3d velocity = direction.multiply(spell.flyingSpeed);
+				var fireball = spell.fireballType.equals("big")  ?
+						new FireballEntity(world, player, velocity, spell.fireballExplosionPower):
+						new SmallFireballEntity(world, player, velocity);
+				fireball.setPosition(player.getEyePos());
+				world.spawnEntity(fireball);
 			}, i * spell.repeatDelay);
 		}
 	}

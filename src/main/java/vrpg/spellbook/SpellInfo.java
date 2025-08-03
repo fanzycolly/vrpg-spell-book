@@ -14,4 +14,7 @@ class SpellInfo {
     public int maxTarget;
     public int repeatCount;
     public double repeatDelay;
+    public double flyingSpeed;
+    public String fireballType;
+    public int fireballExplosionPower;
 }
