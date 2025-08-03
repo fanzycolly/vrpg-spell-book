@@ -54,6 +54,7 @@ public class VRPGSpellBookClient implements ClientModInitializer {
 			String pinyin = pinyins[0].replaceAll("\\d", "");
 			pinyinBuilder.append(pinyin).append(" ");
 		}
+		//todo 多音字，比如说重新的重，如果默认取0，永远只能拿到zhong
 		return pinyinBuilder.toString().trim();
 	}
 }

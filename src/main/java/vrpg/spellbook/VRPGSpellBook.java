@@ -4,6 +4,7 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.message.v1.ServerMessageEvents;
 import net.fabricmc.fabric.api.item.v1.EnchantingContext;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.NbtComponent;
 import net.minecraft.enchantment.EnchantmentHelper;
@@ -33,7 +34,7 @@ import java.util.function.BiConsumer;
 public class VRPGSpellBook implements ModInitializer {
 	public static final String MOD_ID = "vrpg-spell-book";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
-	static final Config CONFIG = Config.load();
+	static Config CONFIG = Config.load();
 
 	private final Map<String, BiConsumer<ServerPlayerEntity, SpellInfo>> spellActions = new HashMap<>();
 
@@ -59,6 +60,9 @@ public class VRPGSpellBook implements ModInitializer {
 		spellActions.put("addEnchantment", this::addEnchantment);
 		spellActions.put("summonLightning", this::summonLightning);
 		spellActions.put("shootFireball", this::shootFireball);
+		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+			spellActions.put("debugReloadConfigFile", this::debugReloadConfigFile);
+		}
 	}
 
 	private void castSpell(ServerPlayerEntity player, String spell) {
@@ -160,6 +164,10 @@ public class VRPGSpellBook implements ModInitializer {
 				world.spawnEntity(fireball);
 			}, i * spell.repeatDelay);
 		}
+	}
+
+	private void debugReloadConfigFile(ServerPlayerEntity player, SpellInfo spell) {
+		CONFIG = Config.load();
 	}
 
 	private <T> RegistryEntry<T> getRegistryEntry(ServerPlayerEntity player, RegistryKey<Registry<T>> keyType, String name) {
