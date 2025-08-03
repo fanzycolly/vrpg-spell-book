@@ -159,11 +159,11 @@ public class VRPGSpellBook implements ModInitializer {
 	}
 
 	private String addUUID(ItemStack item) {
-		var nbt = new NbtCompound();
-		var uuid = UUID.randomUUID().toString();
+		var customData = item.get(DataComponentTypes.CUSTOM_DATA);
+		var nbt = customData != null ? customData.copyNbt() : new NbtCompound();
+		String uuid = UUID.randomUUID().toString();
 		nbt.putString(uuid, "");
 		item.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
-		//todo bug Idempotency
 		return uuid;
 	}
 
