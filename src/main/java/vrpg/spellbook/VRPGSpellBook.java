@@ -154,7 +154,7 @@ public class VRPGSpellBook implements ModInitializer {
 				Vec3d direction = player.getRotationVec(1.0F).normalize();
 				Vec3d velocity = direction.multiply(spell.flyingSpeed);
 				var fireball = spell.fireballType.equals("big")  ?
-						new FireballEntity(world, player, velocity, spell.fireballExplosionPower):
+						new FireballEntity(world, player, velocity, spell.bigFireballExplosionPower):
 						new SmallFireballEntity(world, player, velocity);
 				fireball.setPosition(player.getEyePos());
 				world.spawnEntity(fireball);

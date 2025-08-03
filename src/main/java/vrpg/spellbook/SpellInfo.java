@@ -16,5 +16,5 @@ class SpellInfo {
     public double repeatDelay;
     public double flyingSpeed;
     public String fireballType;
-    public int fireballExplosionPower;
+    public int bigFireballExplosionPower;
 }
